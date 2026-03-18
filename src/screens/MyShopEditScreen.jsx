@@ -30,44 +30,50 @@ const EDIT_LOGO_SIZE = 90;
 // Initial dummy product data
 const INITIAL_PRODUCTS = {
     'Last discounts': [
-        { id: '1', name: 'iPhone 16 Pro', distance: '255 m', oldPrice: '1199 $', price: '999 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 10 },
-        { id: '2', name: 'MacBook Air', distance: '255 m', oldPrice: '1299 $', price: '1099 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 5 },
-        { id: '3', name: 'AirPods Pro', distance: '255 m', oldPrice: '279 $', price: '219 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 20 },
-        { id: '4', name: 'iPad Mini', distance: '255 m', oldPrice: '599 $', price: '499 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 8 },
+        { id: '1', name: 'iPhone 16 Pro', distance: '255 m', price: '1199 $', discountPrice: '999 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 10 },
+        { id: '2', name: 'MacBook Air', distance: '255 m', price: '1299 $', discountPrice: '1099 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 5 },
+        { id: '3', name: 'AirPods Pro', distance: '255 m', price: '279 $', discountPrice: '219 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 20 },
+        { id: '4', name: 'iPad Mini', distance: '255 m', price: '599 $', discountPrice: '499 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 8 },
     ],
     'Phones': [
-        { id: '5', name: 'iPhone 16', distance: '255 m', oldPrice: '999 $', price: '899 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 15 },
-        { id: '6', name: 'iPhone 16 Plus', distance: '255 m', oldPrice: null, price: '1099 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 12 },
-        { id: '7', name: 'iPhone SE', distance: '255 m', oldPrice: null, price: '429 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 25 },
-        { id: '8', name: 'iPhone 15', distance: '255 m', oldPrice: '899 $', price: '699 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 7 },
+        { id: '5', name: 'iPhone 16', distance: '255 m', price: '999 $', discountPrice: '899 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 15 },
+        { id: '6', name: 'iPhone 16 Plus', distance: '255 m', price: '1099 $', discountPrice: null, img: require('../../assets/iphone.jpeg'), description: '', stock: 12 },
+        { id: '7', name: 'iPhone SE', distance: '255 m', price: '429 $', discountPrice: null, img: require('../../assets/iphone.jpeg'), description: '', stock: 25 },
+        { id: '8', name: 'iPhone 15', distance: '255 m', price: '899 $', discountPrice: '699 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 7 },
     ],
     'Tablets': [
-        { id: '9', name: 'iPad Pro 13"', distance: '255 m', oldPrice: null, price: '1299 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 4 },
-        { id: '10', name: 'iPad Air', distance: '255 m', oldPrice: '699 $', price: '599 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 10 },
-        { id: '11', name: 'iPad 10th Gen', distance: '255 m', oldPrice: null, price: '449 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 18 },
-        { id: '12', name: 'iPad Mini 7', distance: '255 m', oldPrice: '599 $', price: '499 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 6 },
+        { id: '9', name: 'iPad Pro 13"', distance: '255 m', price: '1299 $', discountPrice: null, img: require('../../assets/iphone.jpeg'), description: '', stock: 4 },
+        { id: '10', name: 'iPad Air', distance: '255 m', price: '699 $', discountPrice: '599 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 10 },
+        { id: '11', name: 'iPad 10th Gen', distance: '255 m', price: '449 $', discountPrice: null, img: require('../../assets/iphone.jpeg'), description: '', stock: 18 },
+        { id: '12', name: 'iPad Mini 7', distance: '255 m', price: '599 $', discountPrice: '499 $', img: require('../../assets/iphone.jpeg'), description: '', stock: 6 },
     ],
 };
 
-let nextProductId = 13;
+
 
 // ─── Product Card (same as ShopScreen) ───
-function ProductCard({ product }) {
+function ProductCard({ product, shopName, shopAddress, currentSection, availableSections, onProductUpdate }) {
     const navigation = useNavigation();
 
     const handlePress = () => {
         navigation.navigate('ProductScreen', {
             product: {
+                id: product.id,
                 name: product.name,
                 price: product.price,
-                old_price: product.oldPrice,
+                discountPrice: product.discountPrice,
                 img: product.img,
+                images: product.images || [],
+                description: product.description || '',
                 distance: product.distance,
-                store_infos: product.shopName || 'Shop',
-                store_address: product.shopAddress || '',
+                store_infos: shopName || 'Shop',
+                store_address: shopAddress || '',
                 inStock: true,
             },
             isOwner: true,
+            currentSection,
+            availableSections,
+            onProductUpdate,
         });
     };
 
@@ -80,10 +86,10 @@ function ProductCard({ product }) {
                 <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
                 <View style={styles.productMeta}>
                     <View style={styles.productPriceContainer}>
-                        {product.oldPrice && (
-                            <Text style={styles.productOldPrice}>{product.oldPrice}</Text>
+                        {product.discountPrice && (
+                            <Text style={styles.productOldPrice}>{product.price}</Text>
                         )}
-                        <Text style={styles.productPrice}>{product.price}</Text>
+                        <Text style={styles.productPrice}>{product.discountPrice || product.price}</Text>
                     </View>
                 </View>
             </View>
@@ -91,7 +97,7 @@ function ProductCard({ product }) {
     );
 }
 
-function CategorySection({ title, products }) {
+function CategorySection({ title, products, shopName, shopAddress, availableSections, onProductUpdate }) {
     return (
         <View style={styles.categorySection}>
             <Text style={styles.categoryTitle}>{title}</Text>
@@ -101,7 +107,15 @@ function CategorySection({ title, products }) {
                 contentContainerStyle={styles.categoryScroll}
             >
                 {products.map((product) => (
-                    <ProductCard key={product.id} product={product} />
+                    <ProductCard
+                        key={product.id}
+                        product={product}
+                        shopName={shopName}
+                        shopAddress={shopAddress}
+                        currentSection={title}
+                        availableSections={availableSections}
+                        onProductUpdate={onProductUpdate}
+                    />
                 ))}
             </ScrollView>
         </View>
@@ -122,7 +136,7 @@ export default function MyShopEditScreen() {
     const [newProductName, setNewProductName] = useState('');
     const [newProductDescription, setNewProductDescription] = useState('');
     const [newProductPrice, setNewProductPrice] = useState('');
-    const [newProductOldPrice, setNewProductOldPrice] = useState('');
+    const [newProductDiscountPrice, setNewProductDiscountPrice] = useState('');
     const [newProductStock, setNewProductStock] = useState('');
     const [newProductSection, setNewProductSection] = useState('');
     const [newProductImages, setNewProductImages] = useState([]);
@@ -341,7 +355,7 @@ export default function MyShopEditScreen() {
         setNewProductName('');
         setNewProductDescription('');
         setNewProductPrice('');
-        setNewProductOldPrice('');
+        setNewProductDiscountPrice('');
         setNewProductStock('');
         setNewProductSection('');
         setNewProductImages([]);
@@ -397,13 +411,13 @@ export default function MyShopEditScreen() {
             return;
         }
 
-        const hasDiscount = newProductOldPrice.trim() !== '';
+        const hasDiscount = newProductDiscountPrice.trim() !== '';
         const newProduct = {
-            id: String(nextProductId++),
+            id: Date.now().toString(),
             name: newProductName.trim(),
             description: newProductDescription.trim(),
-            price: hasDiscount ? `${newProductOldPrice.trim()} $` : `${newProductPrice.trim()} $`,
-            oldPrice: hasDiscount ? `${newProductPrice.trim()} $` : null,
+            price: `${newProductPrice.trim()} $`,
+            discountPrice: hasDiscount ? `${newProductDiscountPrice.trim()} $` : null,
             img: { uri: newProductImages[0] },
             images: newProductImages,
             stock: parseInt(newProductStock) || 0,
@@ -425,6 +439,42 @@ export default function MyShopEditScreen() {
         Alert.alert('Success', `"${newProduct.name}" has been added to "${section}".`);
     };
 
+    // ─── Update Product Logic ───
+    const handleProductUpdate = (productId, oldSection, newSection, updatedData) => {
+        setShopProducts((prev) => {
+            const updated = {};
+            // Copy all sections
+            Object.keys(prev).forEach((key) => {
+                updated[key] = [...prev[key]];
+            });
+
+            // Find and remove from old section
+            let product = null;
+            if (updated[oldSection]) {
+                const idx = updated[oldSection].findIndex((p) => p.id === productId);
+                if (idx >= 0) {
+                    product = { ...updated[oldSection][idx], ...updatedData };
+                    updated[oldSection].splice(idx, 1);
+                    // Remove section if empty
+                    if (updated[oldSection].length === 0) {
+                        delete updated[oldSection];
+                    }
+                }
+            }
+
+            // Add to new section
+            if (product) {
+                if (updated[newSection]) {
+                    updated[newSection] = [...(updated[newSection] || []), product];
+                } else {
+                    updated[newSection] = [product];
+                }
+            }
+
+            return updated;
+        });
+    };
+
     // ──────────────────────────────────────
     // EDIT MODE VIEW
     // ──────────────────────────────────────
@@ -442,10 +492,11 @@ export default function MyShopEditScreen() {
                         {editCoverImage ? (
                             <Image source={{ uri: editCoverImage }} style={styles.headerImage} resizeMode="cover" />
                         ) : (
-                            <View style={styles.editCoverPlaceholder}>
-                                <Ionicons name="image-outline" size={38} color="#aaa" />
-                                <Text style={styles.editCoverPlaceholderText}>Tap to change cover image</Text>
-                            </View>
+                            <Image
+                                source={require('../../assets/apple-store.jpeg')}
+                                style={styles.headerImage}
+                                resizeMode="cover"
+                            />
                         )}
                         <View style={styles.coverCameraBadge}>
                             <Ionicons name="camera" size={18} color="#fff" />
@@ -474,7 +525,7 @@ export default function MyShopEditScreen() {
                                     <Image source={{ uri: editLogo }} style={styles.editLogoImage} resizeMode="cover" />
                                 ) : (
                                     <View style={styles.editLogoPlaceholder}>
-                                        <Ionicons name="storefront" size={36} color="#2d253b" />
+                                        <Ionicons name="logo-apple" size={40} color="#000" />
                                     </View>
                                 )}
                                 <View style={styles.logoCameraBadge}>
@@ -782,7 +833,15 @@ export default function MyShopEditScreen() {
                 {/* Product Sections */}
                 <View style={styles.productsContainer}>
                     {Object.entries(shopProducts).map(([category, products]) => (
-                        <CategorySection key={category} title={category} products={products} />
+                        <CategorySection
+                            key={category}
+                            title={category}
+                            products={products}
+                            shopName={shopName}
+                            shopAddress={shopAddress}
+                            availableSections={Object.keys(shopProducts)}
+                            onProductUpdate={handleProductUpdate}
+                        />
                     ))}
                 </View>
 
@@ -897,8 +956,8 @@ export default function MyShopEditScreen() {
                                         style={[styles.addProductInput, { marginHorizontal: 0 }]}
                                         placeholder="999"
                                         placeholderTextColor="#bbb"
-                                        value={newProductOldPrice}
-                                        onChangeText={setNewProductOldPrice}
+                                        value={newProductDiscountPrice}
+                                        onChangeText={setNewProductDiscountPrice}
                                         keyboardType="numeric"
                                     />
                                 </View>

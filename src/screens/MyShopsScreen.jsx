@@ -20,6 +20,22 @@ const PICKER_ITEM_HEIGHT = 44;
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
+// Available shop categories
+const SHOP_CATEGORIES = [
+    { key: 'Tech', label: 'Tech', icon: 'laptop-outline', color: '#6366F1' },
+    { key: 'Shopping', label: 'Shopping', icon: 'bag-outline', color: '#A78BFA' },
+    { key: 'Restaurants', label: 'Restaurants', icon: 'restaurant-outline', color: '#FF6B6B' },
+    { key: 'Cafes', label: 'Cafes', icon: 'cafe-outline', color: '#4ECDC4' },
+    { key: 'Services', label: 'Services', icon: 'construct-outline', color: '#3B82F6' },
+    { key: 'Health', label: 'Health', icon: 'fitness-outline', color: '#EC4899' },
+    { key: 'Beauty', label: 'Beauty', icon: 'sparkles-outline', color: '#F472B6' },
+    { key: 'Fun', label: 'Fun', icon: 'game-controller-outline', color: '#F59E0B' },
+    { key: 'Education', label: 'Education', icon: 'school-outline', color: '#14B8A6' },
+    { key: 'Automotive', label: 'Automotive', icon: 'car-outline', color: '#64748B' },
+];
+
+const MAX_CATEGORIES = 5;
+
 // Beta access code — change this to whatever code you give to testers
 const BETA_ACCESS_CODE = 'QFIND2026';
 
@@ -45,6 +61,17 @@ export default function MyShopsScreen() {
     const [newShopPhone, setNewShopPhone] = useState('');
     const [newShopOpenTime, setNewShopOpenTime] = useState('09:00');
     const [newShopCloseTime, setNewShopCloseTime] = useState('21:00');
+    const [selectedCategories, setSelectedCategories] = useState([]);
+
+    const toggleCategory = (key) => {
+        setSelectedCategories((prev) => {
+            if (prev.includes(key)) {
+                return prev.filter((k) => k !== key);
+            }
+            if (prev.length >= MAX_CATEGORIES) return prev;
+            return [...prev, key];
+        });
+    };
 
     // Time picker state for creation modal
     const [createTimePickerVisible, setCreateTimePickerVisible] = useState(false);
@@ -140,6 +167,7 @@ export default function MyShopsScreen() {
             hours: `${newShopOpenTime} - ${newShopCloseTime}`,
             openTime: newShopOpenTime,
             closeTime: newShopCloseTime,
+            categories: selectedCategories,
             logo: null,
             coverImage: null,
         };
@@ -149,6 +177,7 @@ export default function MyShopsScreen() {
         setNewShopPhone('');
         setNewShopOpenTime('09:00');
         setNewShopCloseTime('21:00');
+        setSelectedCategories([]);
         setModalVisible(false);
     };
 
@@ -332,6 +361,50 @@ export default function MyShopsScreen() {
                                         <Text style={styles.createTimePickerValue}>{newShopCloseTime}</Text>
                                     </View>
                                 </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.categorySectionHeader}>
+                                <Text style={styles.inputLabel}>Categories</Text>
+                                <Text style={styles.categoryCount}>
+                                    {selectedCategories.length}/{MAX_CATEGORIES}
+                                </Text>
+                            </View>
+                            <View style={styles.categoryGrid}>
+                                {SHOP_CATEGORIES.map((cat) => {
+                                    const isSelected = selectedCategories.includes(cat.key);
+                                    const isDisabled = !isSelected && selectedCategories.length >= MAX_CATEGORIES;
+                                    return (
+                                        <TouchableOpacity
+                                            key={cat.key}
+                                            activeOpacity={0.7}
+                                            onPress={() => toggleCategory(cat.key)}
+                                            disabled={isDisabled}
+                                            style={[
+                                                styles.categoryChip,
+                                                isSelected && { backgroundColor: cat.color + '20', borderColor: cat.color },
+                                                isDisabled && styles.categoryChipDisabled,
+                                            ]}
+                                        >
+                                            <Ionicons
+                                                name={cat.icon}
+                                                size={18}
+                                                color={isSelected ? cat.color : isDisabled ? '#ccc' : '#888'}
+                                            />
+                                            <Text
+                                                style={[
+                                                    styles.categoryChipText,
+                                                    isSelected && { color: cat.color, fontWeight: '700' },
+                                                    isDisabled && { color: '#ccc' },
+                                                ]}
+                                            >
+                                                {cat.label}
+                                            </Text>
+                                            {isSelected && (
+                                                <Ionicons name="checkmark-circle" size={16} color={cat.color} />
+                                            )}
+                                        </TouchableOpacity>
+                                    );
+                                })}
                             </View>
                         </ScrollView>
 
@@ -761,6 +834,44 @@ const styles = StyleSheet.create({
     },
     createTimePickerSeparator: {
         paddingHorizontal: 2,
+    },
+
+    // Category picker
+    categorySectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    categoryCount: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#999',
+        marginTop: 12,
+    },
+    categoryGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 8,
+    },
+    categoryChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: '#f2f4f7',
+        borderWidth: 1.5,
+        borderColor: 'transparent',
+    },
+    categoryChipDisabled: {
+        opacity: 0.4,
+    },
+    categoryChipText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#666',
     },
 
     // Time Picker Modal

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons'
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { View, Text, Image, TouchableOpacity, Animated } from 'react-native'
 import { useNavigation } from '@react-navigation/native';
 
@@ -46,13 +46,35 @@ Available in multiple seasonal colorways.`,
     },
 ]
 
-export default function FCProduct({ initialFavorite = false, index = 0 }) {
+export default function FCProduct({ initialFavorite = false, index = 0, product: productProp }) {
 
     const navigation = useNavigation();
-    const product = PRODUCTS[index % PRODUCTS.length]
+    const product = productProp || PRODUCTS[index % PRODUCTS.length]
 
     const [favoriteLogo, setFavoriteLogo] = useState(initialFavorite)
+    const [imgAspectRatio, setImgAspectRatio] = useState(0.7)
     const scaleAnim = useRef(new Animated.Value(1)).current
+
+    // Resolve the real aspect ratio of the product image
+    useEffect(() => {
+        if (!product.img) return;
+        // Local image (require())
+        if (typeof product.img === 'number') {
+            const asset = Image.resolveAssetSource(product.img);
+            if (asset && asset.width && asset.height) {
+                setImgAspectRatio(asset.width / asset.height);
+            }
+        }
+        // Remote image (URI string or { uri: ... })
+        else {
+            const uri = typeof product.img === 'string' ? product.img : product.img.uri;
+            if (uri) {
+                Image.getSize(uri, (w, h) => {
+                    if (w && h) setImgAspectRatio(w / h);
+                });
+            }
+        }
+    }, [product.img]);
 
     const toggleProductToFavorite = () => {
         if (!favoriteLogo) {
@@ -97,7 +119,7 @@ export default function FCProduct({ initialFavorite = false, index = 0 }) {
                     style={{
                         width: '100%',
                         height: undefined,
-                        aspectRatio: 0.7,
+                        aspectRatio: imgAspectRatio,
                     }}
                     resizeMode="contain"
                 />

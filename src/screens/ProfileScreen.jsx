@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useSettings, CURRENCIES } from '../context/SettingsContext';
+import { useSettings } from '../context/SettingsContext';
+import { HISTORY_DATA } from './HistoryScreen';
 
 // Simulated user UUID
 const USER_UUID = 'a3f8b12e-7c4d-4e9a-b6d1-9f2e8a3c5d7f';
@@ -15,20 +16,55 @@ const MY_SHOPS = [
     { id: '1', name: 'Apple Store', address: 'Shay St 39, Tel Aviv' },
 ];
 
-// Simulated shop visit history
-const VISIT_HISTORY = [
-    { id: '1', name: 'Apple Store', adress: 'Shay St 39, Tel Aviv', date: '18 Feb 2026', phone: '+972-3-1234567', hours: '09:00 - 21:00', isOpen: true },
-    { id: '2', name: 'Mega Sport', adress: 'Shay Agnon St, Ashkelon', date: '17 Feb 2026', phone: '+972-8-8765432', hours: '10:00 - 20:00', isOpen: true },
-    { id: '3', name: 'Fox', adress: 'Shay Agnon St, Ashkelon', date: '16 Feb 2026', phone: '+972-8-1234567', hours: '10:00 - 22:00', isOpen: false },
-    { id: '4', name: "Yitzhak's Grocery", adress: 'Shay Agnon St 5, Ashkelon', date: '15 Feb 2026', phone: '+972-8-1112223', hours: '08:00 - 19:30', isOpen: true },
-    { id: '5', name: 'Studio Pasha', adress: 'Shay Agnon St, Ashkelon', date: '14 Feb 2026', phone: '+972-8-4445556', hours: '09:30 - 21:00', isOpen: true },
-];
+// Category colors for visit items in preview
+const CATEGORY_COLORS = {
+    'Tech': '#6366F1',
+    'Shopping': '#A78BFA',
+    'Restaurants': '#FF6B6B',
+    'Cafes': '#4ECDC4',
+    'Services': '#3B82F6',
+    'Health': '#EC4899',
+    'Beauty': '#F472B6',
+    'Fun': '#F59E0B',
+};
+
+const CATEGORY_ICONS = {
+    'Tech': 'laptop-outline',
+    'Shopping': 'bag-outline',
+    'Restaurants': 'restaurant-outline',
+    'Cafes': 'cafe-outline',
+    'Services': 'construct-outline',
+    'Health': 'fitness-outline',
+    'Beauty': 'sparkles-outline',
+    'Fun': 'game-controller-outline',
+};
+
+function formatShortDate(dateStr) {
+    const date = new Date(dateStr + 'T00:00:00');
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    if (dateStr === todayStr) return 'Today';
+    if (dateStr === yesterdayStr) return 'Yesterday';
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+}
 
 export default function ProfileScreen() {
     const navigation = useNavigation();
     const { getCurrencySymbol } = useSettings();
-    const visibleHistory = VISIT_HISTORY.slice(0, 3);
     const currencySymbol = getCurrencySymbol();
+
+    // Sort all history items by date+time descending, take first 4
+    const sortedHistory = [...HISTORY_DATA]
+        .sort((a, b) => {
+            const dateComp = b.date.localeCompare(a.date);
+            if (dateComp !== 0) return dateComp;
+            return b.time.localeCompare(a.time);
+        })
+        .slice(0, 4);
 
     return (
         <View style={styles.container}>
@@ -57,35 +93,61 @@ export default function ProfileScreen() {
                     </Text>
                 </View>
 
-
-                {/* Visit History */}
+                {/* History Preview */}
                 <View style={styles.historySection}>
                     <View style={styles.historySectionHeader}>
                         <Ionicons name="time-outline" size={22} color="#2d253b" />
-                        <Text style={styles.historySectionTitle}>Visited shops</Text>
+                        <Text style={styles.historySectionTitle}>History</Text>
                     </View>
-                    {visibleHistory.map((visit) => (
-                        <TouchableOpacity
-                            key={visit.id}
-                            style={styles.historyItem}
-                            activeOpacity={0.7}
-                            onPress={() => navigation.navigate('ShopScreen', { shop: visit })}
-                        >
-                            <View style={styles.historyIcon}>
-                                <Ionicons name="storefront-outline" size={22} color="#2d253b" />
-                            </View>
-                            <View style={styles.historyInfo}>
-                                <Text style={styles.historyName}>{visit.name}</Text>
-                                <Text style={styles.historyAddress}>{visit.adress}</Text>
-                            </View>
-                            <Text style={styles.historyDate}>{visit.date}</Text>
-                        </TouchableOpacity>
-                    ))}
+                    {sortedHistory.map((item) => {
+                        if (item.type === 'visit') {
+                            const catColor = CATEGORY_COLORS[item.category] || '#888';
+                            const catIcon = CATEGORY_ICONS[item.category] || 'storefront-outline';
+                            return (
+                                <TouchableOpacity
+                                    key={item.id}
+                                    style={styles.historyItem}
+                                    activeOpacity={0.7}
+                                    onPress={() => navigation.navigate('ShopScreen', { shop: { name: item.shopName, adress: item.address } })}
+                                >
+                                    <View style={[styles.historyIcon, { backgroundColor: catColor + '15' }]}>
+                                        <Ionicons name={catIcon} size={20} color={catColor} />
+                                    </View>
+                                    <View style={styles.historyInfo}>
+                                        <Text style={styles.historyName}>{item.shopName}</Text>
+                                        <Text style={styles.historyAddress}>{item.address}</Text>
+                                    </View>
+                                    <View style={styles.historyRight}>
+                                        <Text style={styles.historyDate}>{formatShortDate(item.date)}</Text>
+                                        <Text style={styles.historyTime}>{item.time}</Text>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        }
+                        if (item.type === 'cashback') {
+                            return (
+                                <View key={item.id} style={styles.historyItem}>
+                                    <View style={[styles.historyIcon, { backgroundColor: '#10B98115' }]}>
+                                        <Ionicons name="cash-outline" size={20} color="#10B981" />
+                                    </View>
+                                    <View style={styles.historyInfo}>
+                                        <Text style={styles.historyName}>{item.shopName}</Text>
+                                        <Text style={[styles.cashbackText, { color: '#10B981' }]}>+{item.amount.toFixed(2)} {currencySymbol}</Text>
+                                    </View>
+                                    <View style={styles.historyRight}>
+                                        <Text style={styles.historyDate}>{formatShortDate(item.date)}</Text>
+                                        <Text style={styles.historyTime}>{item.time}</Text>
+                                    </View>
+                                </View>
+                            );
+                        }
+                        return null;
+                    })}
 
                     <TouchableOpacity
                         activeOpacity={0.7}
                         style={styles.seeMoreBtn}
-                        onPress={() => navigation.navigate('VisitedShopsScreen')}
+                        onPress={() => navigation.navigate('HistoryScreen')}
                     >
                         <Text style={styles.seeMoreText}>See more</Text>
                     </TouchableOpacity>
@@ -196,31 +258,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#2d253b',
     },
-    myShopsSection: {
-        marginTop: 20,
-    },
-    myShopItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 14,
-        marginBottom: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 3,
-        elevation: 2,
-    },
-    myShopIcon: {
-        width: 42,
-        height: 42,
-        borderRadius: 12,
-        backgroundColor: '#e8ebf0',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
     historySection: {
         marginTop: 20,
     },
@@ -252,7 +289,6 @@ const styles = StyleSheet.create({
         width: 42,
         height: 42,
         borderRadius: 12,
-        backgroundColor: '#f2f4f7',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 12,
@@ -270,10 +306,50 @@ const styles = StyleSheet.create({
         color: '#888',
         marginTop: 2,
     },
+    cashbackText: {
+        fontSize: 14,
+        fontWeight: '700',
+        marginTop: 2,
+    },
+    historyRight: {
+        alignItems: 'flex-end',
+        marginLeft: 8,
+    },
     historyDate: {
         fontSize: 12,
         color: '#b0b0b0',
         fontWeight: '500',
+    },
+    historyTime: {
+        fontSize: 11,
+        color: '#ccc',
+        fontWeight: '500',
+        marginTop: 2,
+    },
+    myShopsSection: {
+        marginTop: 20,
+    },
+    myShopItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 14,
+        marginBottom: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    myShopIcon: {
+        width: 42,
+        height: 42,
+        borderRadius: 12,
+        backgroundColor: '#e8ebf0',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
     },
     seeMoreBtn: {
         alignItems: 'center',

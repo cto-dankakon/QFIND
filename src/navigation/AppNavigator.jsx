@@ -1,5 +1,4 @@
-import React, { useRef, useState } from 'react';
-import { Animated, Dimensions, Easing } from 'react-native';
+import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -11,59 +10,18 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ShopScreen from '../screens/ShopScreen';
 import ProductScreen from '../screens/ProductScreen';
 import ShopsListScreen from '../screens/ShopsListScreen';
-import VisitedShopsScreen from '../screens/VisitedShopsScreen';
+import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MyShopsScreen from '../screens/MyShopsScreen';
 import MyShopEditScreen from '../screens/MyShopEditScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
-const { width } = Dimensions.get('window');
-
-function AnimatedScreen({ children, direction }) {
-    const slideAnim = useRef(new Animated.Value(direction * width)).current;
-    const opacityAnim = useRef(new Animated.Value(0)).current;
-
-    React.useEffect(() => {
-        Animated.parallel([
-            Animated.timing(slideAnim, {
-                toValue: 0,
-                duration: 250,
-                useNativeDriver: true,
-                easing: Easing.out(Easing.cubic),
-            }),
-            Animated.timing(opacityAnim, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-                easing: Easing.out(Easing.cubic),
-            }),
-        ]).start();
-    }, []);
-
-    return (
-        <Animated.View style={{ flex: 1, opacity: opacityAnim, transform: [{ translateX: slideAnim }] }}>
-            {children}
-        </Animated.View>
-    );
-}
 
 function TabNavigator() {
-    const prevIndexRef = useRef(0);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const directionRef = useRef(1);
-
     return (
         <Tab.Navigator
             initialRouteName="Browse"
-            screenListeners={{
-                state: (e) => {
-                    const newIndex = e.data.state.index;
-                    directionRef.current = newIndex > prevIndexRef.current ? 1 : -1;
-                    prevIndexRef.current = newIndex;
-                    setCurrentIndex(newIndex);
-                },
-            }}
             screenOptions={({ route }) => ({
                 headerShown: false,
                 tabBarIcon: ({ focused, color, size }) => {
@@ -94,27 +52,9 @@ function TabNavigator() {
                 },
             })}
         >
-            <Tab.Screen name="Browse">
-                {() => (
-                    <AnimatedScreen direction={directionRef.current} key={`browse-${currentIndex}`}>
-                        <BrowseScreen />
-                    </AnimatedScreen>
-                )}
-            </Tab.Screen>
-            <Tab.Screen name="Favorites">
-                {() => (
-                    <AnimatedScreen direction={directionRef.current} key={`favorites-${currentIndex}`}>
-                        <FavoritesScreen />
-                    </AnimatedScreen>
-                )}
-            </Tab.Screen>
-            <Tab.Screen name="Profile">
-                {() => (
-                    <AnimatedScreen direction={directionRef.current} key={`profile-${currentIndex}`}>
-                        <ProfileScreen />
-                    </AnimatedScreen>
-                )}
-            </Tab.Screen>
+            <Tab.Screen name="Browse" component={BrowseScreen} />
+            <Tab.Screen name="Favorites" component={FavoritesScreen} />
+            <Tab.Screen name="Profile" component={ProfileScreen} />
         </Tab.Navigator>
     );
 }
@@ -146,8 +86,8 @@ export default function AppNavigator() {
                     }}
                 />
                 <Stack.Screen
-                    name="VisitedShopsScreen"
-                    component={VisitedShopsScreen}
+                    name="HistoryScreen"
+                    component={HistoryScreen}
                     options={{
                         animation: 'slide_from_right',
                     }}

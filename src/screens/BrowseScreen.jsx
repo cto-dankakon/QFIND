@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
@@ -12,7 +12,8 @@ import {
     Easing,
     Platform,
     ActivityIndicator,
-    Image, // Added Image import
+    Image,
+    RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,6 +26,7 @@ import FCShop from '../components/FCShop';
 import FCProduct from '../components/FCProduct';
 import FCSwitchMap from '../components/FCSwitchMap';
 import FCFilterBar from '../components/FCFilterBar';
+import { getMenuData } from '../../amplify/functions/getMenuData';
 
 // react-native-maps only works on native (iOS/Android), not on web
 let MapView = null;
@@ -171,6 +173,8 @@ export default function BrowseScreen() {
     const [userLocation, setUserLocation] = useState(null);
     const [locationLoading, setLocationLoading] = useState(false);
     const [selectedShop, setSelectedShop] = useState(null);
+    const [shops, setShops] = useState(NEARBY_SHOPS);
+    const [products, setProducts] = useState([]);
     const [filters, setFilters] = useState({
         categories: [],
         distance: null,
@@ -179,10 +183,80 @@ export default function BrowseScreen() {
         promoOnly: false,
         showMode: 'all',
     });
+    const [refreshing, setRefreshing] = useState(false);
     const searchAnim = useRef(new Animated.Value(0)).current;
     const panelAnim = useRef(new Animated.Value(0)).current;
     const searchInputRef = useRef(null);
     const locationSubRef = useRef(null);
+
+    // Fetch data from getMenuData and map to component-compatible format
+    const fetchMenuData = useCallback(async () => {
+        try {
+            const coords = userLocation
+                ? { latitude: userLocation.latitude, longitude: userLocation.longitude }
+                : { latitude: 31.662, longitude: 34.554 };
+
+            const data = await getMenuData(coords);
+
+            // Map shops to the format expected by FCShop
+            const mappedShops = data.nearbyShops.map((s) => ({
+                id: s.id,
+                name: s.name,
+                title: s.name,
+                category: s.category,
+                adress: s.address,
+                latitude: s.latitude,
+                longitude: s.longitude,
+                description: s.description,
+                rating: s.rating,
+                reviews: s.reviews,
+                distance: s.distance,
+                phone: s.phone,
+                openTime: s.openTime,
+                closeTime: s.closeTime,
+                hours: `${s.openTime} - ${s.closeTime}`,
+                isOpen: s.isOpen,
+                logo: LogoApple,
+                logoUrl: s.logoUrl,
+                coverUrl: s.coverUrl,
+            }));
+
+            // Map products to the format expected by FCProduct
+            const productImages = [
+                require('../../assets/iphone.jpeg'),
+                require('../../assets/sneakers.jpeg'),
+            ];
+            const mappedProducts = data.nearbyProducts.map((p, i) => ({
+                name: p.name,
+                rating: p.rating,
+                price: p.discountPrice ? `${p.discountPrice} ${p.currency}` : `${p.price} ${p.currency}`,
+                old_price: p.discountPrice ? `${p.price} ${p.currency}` : null,
+                store_infos: p.shopName,
+                store_address: p.shopAddress,
+                img: productImages[i % 2],
+                distance: p.distance,
+                inStock: p.inStock,
+                description: p.description || '',
+            }));
+
+            setShops(mappedShops);
+            setProducts(mappedProducts);
+        } catch (error) {
+            console.error('[BrowseScreen] Failed to fetch menu data:', error);
+        }
+    }, [userLocation]);
+
+    // Load data on mount
+    useEffect(() => {
+        fetchMenuData();
+    }, []);
+
+    // Pull-to-refresh
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await fetchMenuData();
+        setRefreshing(false);
+    }, [fetchMenuData]);
 
     const openShopPanel = (shop) => {
         setSelectedShop(shop);
@@ -391,6 +465,15 @@ export default function BrowseScreen() {
                     style={styles.scrollView}
                     contentContainerStyle={styles.scrollContent}
                     showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={onRefresh}
+                            tintColor="#2d253b"
+                            colors={['#2d253b']}
+                            progressBackgroundColor="#f2f4f7"
+                        />
+                    }
                 >
 
 
@@ -412,7 +495,7 @@ export default function BrowseScreen() {
                                 showsHorizontalScrollIndicator={false}
                                 contentContainerStyle={{ gap: 3 }}
                             >
-                                {NEARBY_SHOPS.map((shop) => (
+                                {shops.map((shop) => (
                                     <FCShop key={shop.id} shop={shop} />
                                 ))}
                                 <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
@@ -430,16 +513,18 @@ export default function BrowseScreen() {
                         </View>
                         <View style={styles.masonryContainer}>
                             <View style={styles.masonryColumn}>
-                                <FCProduct index={0} />
-                                <FCProduct index={1} />
-                                <FCProduct index={0} />
-                                <FCProduct index={1} />
-                                <FCProduct index={0} />
+                                {products
+                                    .filter((_, i) => i % 2 === 0)
+                                    .map((p, i) => (
+                                        <FCProduct key={`left-${i}`} product={p} />
+                                    ))}
                             </View>
                             <View style={styles.masonryColumn}>
-                                <FCProduct index={1} />
-                                <FCProduct index={0} />
-                                <FCProduct index={1} />
+                                {products
+                                    .filter((_, i) => i % 2 === 1)
+                                    .map((p, i) => (
+                                        <FCProduct key={`right-${i}`} product={p} />
+                                    ))}
                             </View>
                         </View>
                     </View>
@@ -499,7 +584,7 @@ export default function BrowseScreen() {
                         )}
 
                         {/* Shop markers */}
-                        {Marker && NEARBY_SHOPS.map((shop) => (
+                        {Marker && shops.map((shop) => (
                             <Marker
                                 key={shop.id}
                                 coordinate={{
@@ -620,7 +705,7 @@ const styles = StyleSheet.create({
     },
     masonryColumn: {
         flex: 1,
-        gap: 20,
+        gap: 0,
     },
     map: {
         flex: 1,
