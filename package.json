@@ -43,6 +43,7 @@
     "@babel/preset-react": "^7.28.5",
     "@types/react": "~19.1.10",
     "aws-cdk-lib": "^2.234.1",
+    "babel-preset-expo": "^55.0.12",
     "constructs": "^10.5.1",
     "esbuild": "^0.27.3",
     "tsx": "^4.21.0",
