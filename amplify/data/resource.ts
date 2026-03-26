@@ -24,15 +24,6 @@ export const data = defineData({
   },
 });
 
-export const storage = defineStorage({
-  name: 'qfind-amplify-data-bucket',
-  access: (allow) => ({
-    'media/*': [
-      allow.guest.to(['read', 'write']),
-    ],
-  }),
-});
-
 
 
 /*== STEP 2 ===============================================================
