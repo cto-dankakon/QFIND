@@ -20,4 +20,4 @@ Tags.of(s3Bucket).add('cost:application', 'qfind mobile application');
 Tags.of(s3Bucket).add('cost:component', 'bucket');
 Tags.of(s3Bucket).add('cost:environment', 'dev');
 Tags.of(s3Bucket).add('managed:by', 'cto');
-Tags.of(s3Bucket).add('owner', 'cto');
+Tags.of(s3Bucket).add('owner', 'dan.kakon');
