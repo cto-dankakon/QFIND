@@ -15,7 +15,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.qfind.app"
+      "bundleIdentifier": "com.qfind.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "QFind utilise votre position pour afficher les magasins proches.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "QFind utilise votre position en arrière-plan pour détecter l'entrée dans un magasin."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,13 +27,26 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.qfind.app"
+      "package": "com.qfind.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-dev-client"
+      "expo-dev-client",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "QFind utilise votre position pour détecter les visites magasin.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ]
     ]
   }
 }

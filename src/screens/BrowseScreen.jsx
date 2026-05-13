@@ -26,6 +26,7 @@ import FCShop from '../components/FCShop';
 import FCProduct from '../components/FCProduct';
 import FCSwitchMap from '../components/FCSwitchMap';
 import FCFilterBar from '../components/FCFilterBar';
+import { fetchShops } from '../api/shopsApi';
 import { getMenuData } from '../../amplify/functions/getMenuData';
 
 // react-native-maps only works on native (iOS/Android), not on web
@@ -47,123 +48,6 @@ const POPULAR = [
     { id: '4', title: 'Adventure Park', category: 'Leisure', rating: 4.9, reviews: 567 },
 ];
 
-const NEARBY_SHOPS = [
-    {
-        id: '1',
-        name: 'Mega Sport',
-        title: 'Mega Sport',
-        category: 'Shopping',
-        adress: 'Shay Agnon St, Ashkelon',
-        latitude: 31.662121,
-        longitude: 34.554262,
-        description: 'Sports & Fitness Equipment',
-        rating: 4.5,
-        reviews: 187,
-        distance: '150 m',
-        phone: '+972-8-672-1234',
-        hours: '09:00 - 21:00',
-        isOpen: true,
-        logoIcon: 'fitness',
-        logoColor: '#FF6B6B',
-        logo: LogoApple,
-    },
-    {
-        id: '2',
-        name: 'Fox',
-        title: 'Fox',
-        category: 'Shopping',
-        adress: 'Shay Agnon St, Ashkelon',
-        latitude: 31.661033,
-        longitude: 34.555941,
-        description: 'Clothing & Fashion',
-        rating: 4.3,
-        reviews: 312,
-        distance: '200 m',
-        phone: '+972-8-672-5678',
-        hours: '09:30 - 22:00',
-        isOpen: true,
-        logoIcon: 'shirt',
-        logoColor: '#4ECDC4',
-        logo: LogoApple,
-    },
-    {
-        id: '3',
-        name: 'Mania Jeans',
-        title: 'Mania Jeans',
-        category: 'Shopping',
-        adress: 'Shay Agnon St, Ashkelon',
-        latitude: 31.6625,
-        longitude: 34.5548,
-        description: 'Jeans & Casual Wear',
-        rating: 4.2,
-        reviews: 98,
-        distance: '180 m',
-        phone: '+972-8-672-9012',
-        hours: '10:00 - 20:00',
-        isOpen: false,
-        logoIcon: 'body',
-        logoColor: '#45B7D1',
-        logo: LogoApple,
-    },
-    {
-        id: '4',
-        name: 'Studio Pasha',
-        title: 'Studio Pasha',
-        category: 'Shopping',
-        adress: 'Shay Agnon St, Ashkelon',
-        latitude: 31.6618,
-        longitude: 34.5555,
-        description: "Women's Fashion",
-        rating: 4.6,
-        reviews: 145,
-        distance: '250 m',
-        phone: '+972-8-672-3456',
-        hours: '09:00 - 21:30',
-        isOpen: true,
-        logoIcon: 'woman',
-        logoColor: '#F78FB3',
-        logo: LogoApple,
-    },
-    {
-        id: '5',
-        name: 'Lee Cooper Kids',
-        title: 'Lee Cooper Kids',
-        category: 'Shopping',
-        adress: 'Shay Agnon St, Ashkelon',
-        latitude: 31.6630,
-        longitude: 34.5540,
-        description: 'Kids Fashion',
-        rating: 4.4,
-        reviews: 76,
-        distance: '300 m',
-        phone: '+972-8-672-7890',
-        hours: '10:00 - 20:00',
-        isOpen: false,
-        logoIcon: 'happy',
-        logoColor: '#FFD93D',
-        logo: LogoApple,
-    },
-    {
-        id: '6',
-        name: "Yitzhak's Grocery",
-        title: "Yitzhak's Grocery",
-        category: 'Restaurants',
-        adress: 'Shay Agnon St 5, Ashkelon',
-        latitude: 31.6622,
-        longitude: 34.5537,
-        description: 'Fine Grocery & Local Products',
-        rating: 4.8,
-        reviews: 54,
-        distance: '120 m',
-        phone: '+972-8-672-1111',
-        hours: '08:00 - 20:00',
-        isOpen: true,
-        logoIcon: 'cart',
-        logoColor: '#A55EEA',
-        logo: LogoApple,
-    },
-];
-
 
 export default function BrowseScreen() {
     const navigation = useNavigation();
@@ -173,7 +57,7 @@ export default function BrowseScreen() {
     const [userLocation, setUserLocation] = useState(null);
     const [locationLoading, setLocationLoading] = useState(false);
     const [selectedShop, setSelectedShop] = useState(null);
-    const [shops, setShops] = useState(NEARBY_SHOPS);
+    const [shops, setShops] = useState([]);
     const [products, setProducts] = useState([]);
     const [filters, setFilters] = useState({
         categories: [],
@@ -189,36 +73,37 @@ export default function BrowseScreen() {
     const searchInputRef = useRef(null);
     const locationSubRef = useRef(null);
 
-    // Fetch data from getMenuData and map to component-compatible format
+    // Fetch shops from API and products from getMenuData
     const fetchMenuData = useCallback(async () => {
         try {
             const coords = userLocation
                 ? { latitude: userLocation.latitude, longitude: userLocation.longitude }
                 : { latitude: 31.662, longitude: 34.554 };
 
-            const data = await getMenuData(coords);
+            const [shopsData, data] = await Promise.all([
+                fetchShops(),
+                getMenuData(coords),
+            ]);
 
             // Map shops to the format expected by FCShop
-            const mappedShops = data.nearbyShops.map((s) => ({
+            const mappedShops = shopsData.map((s) => ({
                 id: s.id,
                 name: s.name,
                 title: s.name,
                 category: s.category,
                 adress: s.address,
-                latitude: s.latitude,
-                longitude: s.longitude,
-                description: s.description,
-                rating: s.rating,
-                reviews: s.reviews,
-                distance: s.distance,
+                latitude: s.location?.latitude ?? 0,
+                longitude: s.location?.longitude ?? 0,
+                description: s.description ?? '',
+                rating: s.rating ?? 0,
+                reviews: s.reviews ?? 0,
+                distance: s.distance ?? '',
                 phone: s.phone,
-                openTime: s.openTime,
-                closeTime: s.closeTime,
-                hours: `${s.openTime} - ${s.closeTime}`,
-                isOpen: s.isOpen,
+                hours: `${s.open_time} - ${s.close_time}`,
+                isOpen: s.isOpen ?? true,
                 logo: LogoApple,
-                logoUrl: s.logoUrl,
-                coverUrl: s.coverUrl,
+                logoUrl: s.logo_url,
+                coverUrl: s.cover_url,
             }));
 
             // Map products to the format expected by FCProduct
@@ -226,7 +111,7 @@ export default function BrowseScreen() {
                 require('../../assets/iphone.jpeg'),
                 require('../../assets/sneakers.jpeg'),
             ];
-            const mappedProducts = data.nearbyProducts.map((p, i) => ({
+            const mappedProducts = (data?.nearbyProducts ?? []).map((p, i) => ({
                 name: p.name,
                 rating: p.rating,
                 price: p.discountPrice ? `${p.discountPrice} ${p.currency}` : `${p.price} ${p.currency}`,

@@ -3,10 +3,9 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSettings } from '../context/SettingsContext';
+import { useGeofencing } from '../hooks/useGeofencing';
 import { HISTORY_DATA } from './HistoryScreen';
-
-// Simulated user UUID
-const USER_UUID = 'a3f8b12e-7c4d-4e9a-b6d1-9f2e8a3c5d7f';
+import { getDeviceUUID } from '../utils/deviceUUID';
 
 // Simulated wallet balance
 const WALLET_BALANCE = 50;
@@ -55,7 +54,13 @@ function formatShortDate(dateStr) {
 export default function ProfileScreen() {
     const navigation = useNavigation();
     const { getCurrencySymbol } = useSettings();
+    const { status, requestPermissionsAndStart, stop } = useGeofencing();
     const currencySymbol = getCurrencySymbol();
+    const [deviceUUID, setDeviceUUID] = React.useState('Chargement...');
+
+    React.useEffect(() => {
+        getDeviceUUID().then(setDeviceUUID);
+    }, []);
 
     // Sort all history items by date+time descending, take first 4
     const sortedHistory = [...HISTORY_DATA]
@@ -91,6 +96,74 @@ export default function ProfileScreen() {
                     <Text style={styles.walletBalance}>
                         {WALLET_BALANCE.toFixed(2)} {currencySymbol}
                     </Text>
+                </View>
+
+                {/* Geofencing Section */}
+                <View style={styles.geofencingSection}>
+                  {/* Header */}
+                  <View style={styles.geofencingHeader}>
+                    <Ionicons name="location-outline" size={22} color="#2d253b" />
+                    <Text style={styles.geofencingSectionTitle}>Store Detection</Text>
+                  </View>
+
+                  {/* Status badge */}
+                  <View style={[
+                    styles.statusBadge,
+                    {
+                      backgroundColor:
+                        status === 'active'     ? '#10B98115' :
+                        status === 'denied'     ? '#EF444415' :
+                        status === 'error'      ? '#F5974015' :
+                        status === 'requesting' ? '#3B82F615' :
+                                                  '#64748B15',
+                    }
+                  ]}>
+                    <View style={[
+                      styles.statusDot,
+                      {
+                        backgroundColor:
+                          status === 'active'     ? '#10B981' :
+                          status === 'denied'     ? '#EF4444' :
+                          status === 'error'      ? '#F59E0B' :
+                          status === 'requesting' ? '#3B82F6' :
+                                                    '#64748B',
+                      }
+                    ]} />
+                    <Text style={styles.statusText}>
+                      {status === 'active'     && 'Active — detecting nearby shops'}
+                      {status === 'denied'     && 'Location permission denied'}
+                      {status === 'error'      && 'Service error'}
+                      {status === 'idle'       && 'Inactive'}
+                      {status === 'requesting' && 'Requesting permissions...'}
+                    </Text>
+                  </View>
+
+                  {/* Control button */}
+                  {status === 'active' ? (
+                    <TouchableOpacity
+                      style={[styles.controlBtn, { backgroundColor: '#EF4444' }]}
+                      onPress={stop}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="stop-circle-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+                      <Text style={styles.controlBtnText}>Stop Detection</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[
+                        styles.controlBtn,
+                        { backgroundColor: status === 'requesting' ? '#94a3b8' : '#2d253b' }
+                      ]}
+                      onPress={requestPermissionsAndStart}
+                      disabled={status === 'requesting'}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="location-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+                      <Text style={styles.controlBtnText}>
+                        {status === 'requesting' ? 'Requesting...' : 'Start Detection'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 {/* History Preview */}
@@ -190,7 +263,7 @@ export default function ProfileScreen() {
 
             {/* UUID at the bottom */}
             <View style={styles.footer}>
-                <Text style={styles.uuidText}>{USER_UUID}</Text>
+                <Text style={styles.uuidText}>{deviceUUID}</Text>
             </View>
         </View>
     );
@@ -361,6 +434,61 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#2d253b',
         textDecorationLine: 'underline',
+    },
+    geofencingSection: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 16,
+        marginTop: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        elevation: 3,
+    },
+    geofencingHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 12,
+    },
+    geofencingSectionTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#2d253b',
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        marginBottom: 12,
+        gap: 8,
+    },
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    statusText: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: '#2d253b',
+        flex: 1,
+    },
+    controlBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 12,
+    },
+    controlBtnText: {
+        color: '#fff',
+        fontWeight: '600',
+        fontSize: 14,
     },
     footer: {
         paddingVertical: 16,

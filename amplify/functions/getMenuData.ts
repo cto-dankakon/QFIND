@@ -66,7 +66,7 @@ export interface GetMenuDataInput {
 
 // ─── Mock data ───────────────────────────────────────────────────────────────
 
-const MOCK_SHOPS: Shop[] = [
+export const MOCK_SHOPS: Shop[] = [
     {
         id: 'shop-1',
         name: 'Mega Sport',

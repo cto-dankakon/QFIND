@@ -1,4 +1,5 @@
 import React from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,28 +8,11 @@ import {
     TouchableOpacity,
     StatusBar,
     Image,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-const VISITED_SHOPS = [
-    // Today - 24 Feb 2026
-    { id: '1', name: 'Apple Store', adress: 'Shay St 39, Tel Aviv', date: '2026-02-24', time: '14:05', category: 'Tech', phone: '+972-3-1234567', hours: '09:00 - 21:00', isOpen: true, rating: 4.8, distance: '1.2 km' },
-    { id: '2', name: 'Mega Sport', adress: 'Shay Agnon St, Ashkelon', date: '2026-02-24', time: '11:30', category: 'Shopping', phone: '+972-8-8765432', hours: '10:00 - 20:00', isOpen: true, rating: 4.5, distance: '150 m' },
-    // Yesterday - 23 Feb 2026
-    { id: '3', name: 'Fox', adress: 'Shay Agnon St, Ashkelon', date: '2026-02-23', time: '17:20', category: 'Shopping', phone: '+972-8-1234567', hours: '10:00 - 22:00', isOpen: false, rating: 4.3, distance: '200 m' },
-    { id: '4', name: "Yitzhak's Grocery", adress: 'Shay Agnon St 5, Ashkelon', date: '2026-02-23', time: '10:15', category: 'Restaurants', phone: '+972-8-1112223', hours: '08:00 - 19:30', isOpen: true, rating: 4.8, distance: '120 m' },
-    { id: '5', name: 'Studio Pasha', adress: 'Shay Agnon St, Ashkelon', date: '2026-02-23', time: '09:00', category: 'Shopping', phone: '+972-8-4445556', hours: '09:30 - 21:00', isOpen: true, rating: 4.6, distance: '250 m' },
-    // 22 Feb 2026
-    { id: '6', name: 'Lee Cooper Kids', adress: 'Shay Agnon St, Ashkelon', date: '2026-02-22', time: '15:45', category: 'Shopping', phone: '+972-8-7890123', hours: '10:00 - 20:00', isOpen: false, rating: 4.4, distance: '300 m' },
-    // 20 Feb 2026
-    { id: '7', name: 'Mania Jeans', adress: 'Shay Agnon St, Ashkelon', date: '2026-02-20', time: '13:10', category: 'Shopping', phone: '+972-8-9012345', hours: '10:00 - 20:00', isOpen: false, rating: 4.2, distance: '180 m' },
-    { id: '8', name: 'Apple Store', adress: 'Shay St 39, Tel Aviv', date: '2026-02-20', time: '10:00', category: 'Tech', phone: '+972-3-1234567', hours: '09:00 - 21:00', isOpen: true, rating: 4.8, distance: '1.2 km' },
-    // 18 Feb 2026
-    { id: '9', name: 'Mega Sport', adress: 'Shay Agnon St, Ashkelon', date: '2026-02-18', time: '16:30', category: 'Shopping', phone: '+972-8-8765432', hours: '10:00 - 20:00', isOpen: true, rating: 4.5, distance: '150 m' },
-    { id: '10', name: 'Fox', adress: 'Shay Agnon St, Ashkelon', date: '2026-02-18', time: '14:00', category: 'Shopping', phone: '+972-8-1234567', hours: '10:00 - 22:00', isOpen: false, rating: 4.3, distance: '200 m' },
-    { id: '11', name: "Yitzhak's Grocery", adress: 'Shay Agnon St 5, Ashkelon', date: '2026-02-18', time: '09:20', category: 'Restaurants', phone: '+972-8-1112223', hours: '08:00 - 19:30', isOpen: true, rating: 4.8, distance: '120 m' },
-];
+import { fetchMyVisits } from '../api/visitsApi';
 
 function formatDayLabel(dateStr) {
     const today = new Date();
@@ -130,7 +114,31 @@ function VisitCard({ visit }) {
 
 export default function VisitedShopsScreen() {
     const navigation = useNavigation();
-    const grouped = groupByDay(VISITED_SHOPS);
+    const [visits, setVisits] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const grouped = groupByDay(visits);
+
+    useEffect(() => {
+        fetchMyVisits()
+            .then((data) => {
+                const mapped = data.map((v) => ({
+                    id: v.id,
+                    name: v.shop_name,
+                    adress: v.shop_address,
+                    category: v.shop_category,
+                    date: v.entered_at.split('T')[0],
+                    time: v.entered_at.split('T')[1]?.slice(0, 5) ?? '00:00',
+                    rating: null,
+                    phone: '',
+                    hours: '',
+                    isOpen: null,
+                }));
+                setVisits(mapped);
+                console.log('[VisitedShopsScreen] Visites chargées :', mapped.length);
+            })
+            .catch((err) => console.error('[VisitedShopsScreen] Erreur :', err.message))
+            .finally(() => setLoading(false));
+    }, []);
 
     return (
         <View style={styles.container}>
@@ -153,7 +161,7 @@ export default function VisitedShopsScreen() {
             <View style={styles.summaryBar}>
                 <View style={styles.summaryItem}>
                     <Ionicons name="storefront-outline" size={18} color="#2d253b" />
-                    <Text style={styles.summaryValue}>{VISITED_SHOPS.length}</Text>
+                    <Text style={styles.summaryValue}>{visits.length}</Text>
                     <Text style={styles.summaryLabel}>visits</Text>
                 </View>
                 <View style={styles.summaryDivider} />
@@ -165,34 +173,40 @@ export default function VisitedShopsScreen() {
             </View>
 
             {/* Grouped List */}
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {grouped.map((group, groupIndex) => (
-                    <View key={group.date} style={styles.dayGroup}>
-                        {/* Day Separator */}
-                        <View style={styles.daySeparator}>
-                            <View style={styles.daySeparatorLine} />
-                            <View style={styles.dayLabelContainer}>
-                                <Ionicons name="calendar" size={14} color="#2d253b" />
-                                <Text style={styles.dayLabel}>{group.label}</Text>
-                                <View style={styles.dayCountBadge}>
-                                    <Text style={styles.dayCountText}>{group.visits.length}</Text>
+            {loading ? (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color="#2d253b" />
+                </View>
+            ) : (
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {grouped.map((group, groupIndex) => (
+                        <View key={group.date} style={styles.dayGroup}>
+                            {/* Day Separator */}
+                            <View style={styles.daySeparator}>
+                                <View style={styles.daySeparatorLine} />
+                                <View style={styles.dayLabelContainer}>
+                                    <Ionicons name="calendar" size={14} color="#2d253b" />
+                                    <Text style={styles.dayLabel}>{group.label}</Text>
+                                    <View style={styles.dayCountBadge}>
+                                        <Text style={styles.dayCountText}>{group.visits.length}</Text>
+                                    </View>
                                 </View>
+                                <View style={styles.daySeparatorLine} />
                             </View>
-                            <View style={styles.daySeparatorLine} />
-                        </View>
 
-                        {/* Visit Cards for this day */}
-                        {group.visits.map((visit) => (
-                            <VisitCard key={visit.id} visit={visit} />
-                        ))}
-                    </View>
-                ))}
-                <View style={{ height: 30 }} />
-            </ScrollView>
+                            {/* Visit Cards for this day */}
+                            {group.visits.map((visit) => (
+                                <VisitCard key={visit.id} visit={visit} />
+                            ))}
+                        </View>
+                    ))}
+                    <View style={{ height: 30 }} />
+                </ScrollView>
+            )}
         </View>
     );
 }
