@@ -12,6 +12,7 @@ import ProductScreen from '../screens/ProductScreen';
 import ShopsListScreen from '../screens/ShopsListScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import { GeofencingDebugScreen } from '../screens/GeofencingDebugScreen';
 import MyShopsScreen from '../screens/MyShopsScreen';
 import MyShopEditScreen from '../screens/MyShopEditScreen';
 
@@ -110,6 +111,15 @@ export default function AppNavigator() {
                     name="MyShopEditScreen"
                     component={MyShopEditScreen}
                     options={{
+                        animation: 'slide_from_right',
+                    }}
+                />
+                <Stack.Screen
+                    name="GeofencingDebugScreen"
+                    component={GeofencingDebugScreen}
+                    options={{
+                        headerShown: true,
+                        title: 'Geofencing Debug',
                         animation: 'slide_from_right',
                     }}
                 />

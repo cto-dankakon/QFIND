@@ -147,6 +147,17 @@ export default function SettingsScreen() {
                     ))}
                 </OptionCard>
 
+                <OptionCard title="Developer" icon="construct-outline" iconColor="#F59E0B">
+                    <TouchableOpacity
+                        style={styles.devButton}
+                        onPress={() => navigation.navigate('GeofencingDebugScreen')}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons name="bug-outline" size={18} color="#fff" />
+                        <Text style={styles.devButtonText}>Open Geofencing Debug (POC)</Text>
+                    </TouchableOpacity>
+                </OptionCard>
+
                 <View style={{ height: 40 }} />
             </ScrollView>
         </View>
@@ -288,5 +299,20 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
+    },
+    devButton: {
+        backgroundColor: '#0F172A',
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    devButtonText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700',
     },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,30 +6,15 @@ import {
     ScrollView,
     TouchableOpacity,
     StatusBar,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSettings } from '../context/SettingsContext';
+import { fetchMyVisits, VisitWithShop } from '../api/visitsApi';
 
-// ── Simulated history data ──────────────────────────────────────────
-
-export const HISTORY_DATA = [
-    // Visits
-    { id: 'v1', type: 'visit', shopName: 'Apple Store', address: 'Shay St 39, Tel Aviv', date: '2026-03-10', time: '14:05', category: 'Tech', matchingProduct: { name: 'iPhone 16 Pro', price: 4999, discount: '10%' } },
-    { id: 'v2', type: 'visit', shopName: 'Mega Sport', address: 'Shay Agnon St, Ashkelon', date: '2026-03-10', time: '11:30', category: 'Shopping', matchingProduct: null },
-    { id: 'v3', type: 'visit', shopName: 'Fox', address: 'Shay Agnon St, Ashkelon', date: '2026-03-09', time: '17:20', category: 'Shopping', matchingProduct: { name: 'Winter Jacket', price: 299, discount: '25%' } },
-    { id: 'v4', type: 'visit', shopName: "Yitzhak's Grocery", address: 'Shay Agnon St 5, Ashkelon', date: '2026-03-08', time: '10:15', category: 'Restaurants', matchingProduct: null },
-    { id: 'v5', type: 'visit', shopName: 'Studio Pasha', address: 'Shay Agnon St, Ashkelon', date: '2026-03-07', time: '09:00', category: 'Shopping', matchingProduct: null },
-    { id: 'v6', type: 'visit', shopName: 'Lee Cooper Kids', address: 'Shay Agnon St, Ashkelon', date: '2026-03-05', time: '15:45', category: 'Shopping', matchingProduct: { name: 'Kids Sneakers', price: 189, discount: '15%' } },
-    { id: 'v7', type: 'visit', shopName: 'Mania Jeans', address: 'Shay Agnon St, Ashkelon', date: '2026-03-03', time: '13:10', category: 'Shopping', matchingProduct: null },
-
-    // Cashbacks (each linked to a payment)
-    { id: 'c1', type: 'cashback', shopName: 'Apple Store', amount: 25.00, date: '2026-03-10', time: '14:10', payment: { amount: 4999, method: 'Credit Card', last4: '4821' } },
-    { id: 'c2', type: 'cashback', shopName: 'Fox', amount: 8.50, date: '2026-03-09', time: '17:35', payment: { amount: 299, method: 'Credit Card', last4: '4821' } },
-    { id: 'c3', type: 'cashback', shopName: 'Mega Sport', amount: 12.00, date: '2026-03-07', time: '12:00', payment: { amount: 480, method: 'Debit Card', last4: '7733' } },
-    { id: 'c4', type: 'cashback', shopName: 'Lee Cooper Kids', amount: 5.60, date: '2026-03-05', time: '16:00', payment: { amount: 189, method: 'Credit Card', last4: '4821' } },
-    { id: 'c5', type: 'cashback', shopName: "Yitzhak's Grocery", amount: 3.20, date: '2026-03-03', time: '10:30', payment: { amount: 64, method: 'Apple Pay', last4: '4821' } },
-];
+// TODO: Retirer cet export quand ProfileScreen sera branché sur visitsApi
+export const HISTORY_DATA = [];
 
 // ── Filters ─────────────────────────────────────────────────────────
 
@@ -199,15 +184,42 @@ function PaymentSubCard({ payment }) {
 export default function HistoryScreen() {
     const navigation = useNavigation();
     const [activeFilter, setActiveFilter] = useState('all');
+    const [historyItems, setHistoryItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
+
+    useEffect(() => {
+        setLoading(true);
+        fetchMyVisits()
+            .then((visits) => {
+                const mapped = visits.map((v) => ({
+                    id: v.id,
+                    type: 'visit',
+                    shopName: v.shop_name,
+                    address: v.shop_address,
+                    category: v.shop_category,
+                    date: v.entered_at.split('T')[0],
+                    time: v.entered_at.split('T')[1]?.slice(0, 5) ?? '00:00',
+                    matchingProduct: null,
+                }));
+                setHistoryItems(mapped);
+                console.log('[HistoryScreen] Visites chargées :', mapped.length);
+            })
+            .catch((err) => {
+                console.error('[HistoryScreen] Erreur :', err.message);
+                setFetchError('Failed to load history');
+            })
+            .finally(() => setLoading(false));
+    }, []);
 
     const filteredData = useMemo(() => {
-        if (activeFilter === 'all') return HISTORY_DATA;
-        return HISTORY_DATA.filter((item) => item.type === activeFilter);
-    }, [activeFilter]);
+        if (activeFilter === 'all') return historyItems;
+        return historyItems.filter((item) => item.type === activeFilter);
+    }, [activeFilter, historyItems]);
 
     const grouped = useMemo(() => groupByDay(filteredData), [filteredData]);
 
-    const totalCashback = HISTORY_DATA
+    const totalCashback = historyItems
         .filter((i) => i.type === 'cashback')
         .reduce((sum, i) => sum + i.amount, 0);
 
@@ -256,7 +268,7 @@ export default function HistoryScreen() {
             <View style={styles.summaryBar}>
                 <View style={styles.summaryItem}>
                     <Ionicons name="storefront-outline" size={18} color="#2d253b" />
-                    <Text style={styles.summaryValue}>{HISTORY_DATA.filter((i) => i.type === 'visit').length}</Text>
+                    <Text style={styles.summaryValue}>{historyItems.filter((i) => i.type === 'visit').length}</Text>
                     <Text style={styles.summaryLabel}>visits</Text>
                 </View>
                 <View style={styles.summaryDivider} />
@@ -267,52 +279,66 @@ export default function HistoryScreen() {
                 </View>
             </View>
 
-            {/* Grouped list */}
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {grouped.map((group) => (
-                    <View key={group.date} style={styles.dayGroup}>
-                        {/* Day separator */}
-                        <View style={styles.daySeparator}>
-                            <View style={styles.daySeparatorLine} />
-                            <View style={styles.dayLabelContainer}>
-                                <Ionicons name="calendar" size={14} color="#2d253b" />
-                                <Text style={styles.dayLabel}>{group.label}</Text>
-                                <View style={styles.dayCountBadge}>
-                                    <Text style={styles.dayCountText}>{group.items.length}</Text>
-                                </View>
-                            </View>
-                            <View style={styles.daySeparatorLine} />
-                        </View>
+            {loading && (
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color="#2d253b" />
+                </View>
+            )}
 
-                        {/* Cards */}
-                        {group.items.map((item) => (
-                            <View key={item.id}>
-                                {item.type === 'visit' && (
-                                    <>
-                                        <VisitCard item={item} />
-                                        {item.matchingProduct && (
-                                            <MatchingProductCard product={item.matchingProduct} />
-                                        )}
-                                    </>
-                                )}
-                                {item.type === 'cashback' && (
-                                    <>
-                                        <CashbackCard item={item} />
-                                        {item.payment && (
-                                            <PaymentSubCard payment={item.payment} />
-                                        )}
-                                    </>
-                                )}
+            {!loading && fetchError !== null && (
+                <Text style={{ fontSize: 14, color: '#999', textAlign: 'center', marginTop: 40 }}>
+                    Unable to load history. Pull to refresh.
+                </Text>
+            )}
+
+            {/* Grouped list */}
+            {!loading && fetchError === null && (
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
+                    {grouped.map((group) => (
+                        <View key={group.date} style={styles.dayGroup}>
+                            {/* Day separator */}
+                            <View style={styles.daySeparator}>
+                                <View style={styles.daySeparatorLine} />
+                                <View style={styles.dayLabelContainer}>
+                                    <Ionicons name="calendar" size={14} color="#2d253b" />
+                                    <Text style={styles.dayLabel}>{group.label}</Text>
+                                    <View style={styles.dayCountBadge}>
+                                        <Text style={styles.dayCountText}>{group.items.length}</Text>
+                                    </View>
+                                </View>
+                                <View style={styles.daySeparatorLine} />
                             </View>
-                        ))}
-                    </View>
-                ))}
-                <View style={{ height: 30 }} />
-            </ScrollView>
+
+                            {/* Cards */}
+                            {group.items.map((item) => (
+                                <View key={item.id}>
+                                    {item.type === 'visit' && (
+                                        <>
+                                            <VisitCard item={item} />
+                                            {item.matchingProduct && (
+                                                <MatchingProductCard product={item.matchingProduct} />
+                                            )}
+                                        </>
+                                    )}
+                                    {item.type === 'cashback' && (
+                                        <>
+                                            <CashbackCard item={item} />
+                                            {item.payment && (
+                                                <PaymentSubCard payment={item.payment} />
+                                            )}
+                                        </>
+                                    )}
+                                </View>
+                            ))}
+                        </View>
+                    ))}
+                    <View style={{ height: 30 }} />
+                </ScrollView>
+            )}
         </View>
     );
 }
